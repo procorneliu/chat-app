@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Chat</title>
+  </head>
+  <body>
+    <h1>WebSocket Chat</h1>
+
+    <input type="text" id="username" placeholder="Enter your username..." />
+    <button onclick="connect()" id="btn__join">Join Chat</button>
+
+    <input type="text" id="message" placeholder="Type a message..." disabled />
+    <button onclick="sendMessage()" id="btn__send" disabled>Send</button>
+
+    <div id="chat"></div>
+
+    <script>
+      let username;
+      let socket;
+
+      function connect() {
+        username = document.getElementById("username").value.trim();
+        if (!username) return alert("Please enter a username");
+
+        socket = new WebSocket("ws://localhost:8000");
+
+        socket.onopen = () => {
+          console.log("Connected to server");
+
+          socket.send(JSON.stringify({ type: "setUsername", username }));
+
+          ["username", "btn__join"].forEach(
+            (id) => (document.getElementById(id).disabled = true)
+          );
+
+          ["message", "btn__send"].forEach(
+            (id) => (document.getElementById(id).disabled = false)
+          );
+        };
+
+        socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "message") {
+            const chat = document.getElementById("chat");
+            chat.innerHTML += `<p><strong>${data.username}</strong>: ${data.text}</p>`;
+          }
+        };
+
+        socket.onclose = () => console.log("Disconnected from server");
+      }
+
+      function sendMessage() {
+        const message = document.getElementById("message").value.trim();
+        if (message) {
+          socket.send(JSON.stringify({ type: "message", text: message }));
+        }
+
+        // Clear input
+        message.value = "";
+      }
+    </script>
+  </body>
+</html>
